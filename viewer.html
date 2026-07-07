@@ -63,11 +63,11 @@
 <div class="container">
     <div class="header">
         <h1>📂 老校友图库 </h1>
-        <p>点击姓名查看多媒体资料 | 本地服务模式</p>
+        <p>点击姓名查看多媒体资料 | 静态托管模式</p>
     </div>
     <div class="content">
         <div class="status-bar">
-            <div class="status-info" id="statusLabel">🌐 正在拉取本地多媒体清单...</div>
+            <div class="status-info" id="statusLabel">🌐 正在拉取多媒体清单...</div>
         </div>
 
         <div id="personList" class="person-list">
@@ -97,9 +97,9 @@ let manifestData = null;
 let currentPersonName = '';
 let currentFileList = [];
 
+// 【修改核心】：适配 GitHub 纯静态环境，改为使用相对路径，并匹配“资料文件夹”
 function getFileUrl(personName, fileName) {
-    var baseUrl = window.location.protocol + '//' + window.location.host;
-    return baseUrl + '/media/' + encodeURIComponent(personName) + '/' + encodeURIComponent(fileName);
+    return './资料文件夹/' + encodeURIComponent(personName) + '/' + encodeURIComponent(fileName);
 }
 
 const statusLabel = document.getElementById('statusLabel');
@@ -207,7 +207,7 @@ async function playMedia(personName, fileName) {
     else if (['mp4','webm','mov','avi','mkv'].includes(ext)) {
         modalPreviewBox.innerHTML = `<video controls src="${fileUrl}" style="max-width:100%; max-height:320px;"></video>`;
     } 
-    // 音频（修复：对amr给出明确的优雅提醒和文件管理器跳转指引）
+    // 音频
     else if (['mp3','wav','amr','flac','aac','m4a'].includes(ext)) {
         if (ext === 'amr') {
             modalPreviewBox.innerHTML = `
@@ -223,15 +223,13 @@ async function playMedia(personName, fileName) {
             modalPreviewBox.innerHTML = `<audio controls src="${fileUrl}" style="width:100%;"></audio>`;
         }
     } 
-    // 各类文本及代码文件（修复：强制将 HTML 标签符号转义为普通文字，防止被渲染成网页）
+    // 各类文本及代码文件
     else if (['txt','md','json','xml','py','html','yml','yaml','csv'].includes(ext)) {
         try {
             const resp = await fetch(fileUrl);
             if (resp.ok) {
                 let text = await resp.text();
-                // 将 HTML 符号进行纯文本转义，保证<,>,&直接显示为文字，不被浏览器当代码执行
                 let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                // 单独把 http/https 链接识别出来并变成可点击的
                 let linkified = escapedText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
                 modalPreviewBox.innerHTML = `<div class="preview-text">${linkified}</div>`;
             } else {
@@ -260,17 +258,17 @@ window.onload = async function() {
         const response = await fetch('manifest.json?v=' + Date.now());
         if (response.ok) {
             const data = await response.json();
-            statusLabel.innerHTML = `✅ 本地同步成功！已载入 ${Object.keys(data).length} 位人物的多媒体数据。`;
+            statusLabel.innerHTML = `✅ 清单同步成功！已载入 ${Object.keys(data).length} 位人物的多媒体数据。`;
             renderUI(data);
         } else {
             throw new Error('HTTP ' + response.status);
         }
     } catch (e) {
-        statusLabel.innerHTML = '❌ 未找到有效清单，请同步更新数据。';
+        statusLabel.innerHTML = '❌ 未找到有效清单，请确保 manifest.json 生成并上传正确。';
         statusLabel.style.color = '#c00';
-        personListDiv.innerHTML = `<div class="empty-state">⚠️ 加载失败: ${e.message}<br>请先运行 app1.py 进行同步。</div>`;
+        personListDiv.innerHTML = `<div class="empty-state">⚠️ 加载失败: ${e.message}<br>请确保新仓库根目录下有最新的 manifest.json 文件。</div>`;
     }
 };
 </script>
 </body>
-    </html>
+</html>
